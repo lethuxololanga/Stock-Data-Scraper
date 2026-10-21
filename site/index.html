@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSE Industry Tracker</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=gambetta@500,600&f[]=switzer@400,500,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* Hallmark · genre: editorial · macrostructure: Bento Grid (dashboard) · theme: custom "Malachite" · enrichment: none · nav: N9 · footer: Ft2 */
+  * { box-sizing: border-box; }
+  html, body { overflow-x: clip; }
+  body { margin: 0; background: var(--color-paper); color: var(--color-ink); font: var(--text-md)/1.5 var(--font-body); }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 var(--page-gutter); }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--color-muted); }
+  .gain { color: var(--color-gain); } .loss { color: var(--color-loss); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+  h1, h2, h3 { min-width: 0; overflow-wrap: anywhere; margin: 0; font-family: var(--font-display); font-weight: 500; }
+  ::placeholder { color: var(--color-muted); opacity: 1; }
+  button { font: inherit; color: inherit; }
+
+  /* N9 · edge-aligned nav */
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-md) 0 var(--space-sm); }
+  .nav h1 { font-size: var(--text-lg); line-height: 1; white-space: nowrap; }
+  .nav .meta { display: flex; align-items: center; gap: var(--space-md); font-size: var(--text-sm); }
+  .chip { font-size: var(--text-sm); font-weight: 500; line-height: 1; color: var(--color-ink); text-decoration: none; white-space: nowrap;
+          border: var(--rule-hair) solid var(--color-accent); border-radius: var(--radius-chip); padding: var(--space-2xs) var(--space-sm);
+          min-height: 44px; display: inline-flex; align-items: center; background: none; cursor: pointer;
+          transition: background-color var(--dur-short) var(--ease-out); }
+  .chip:hover { background: var(--color-paper-2); }
+  .chip:active { background: var(--color-rule); }
+  .chip:disabled { border-color: var(--color-rule); color: var(--color-muted); cursor: default; background: none; }
+
+  /* Rand & commodities strip */
+  .macro { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-lg); padding: var(--space-xs) 0; font-size: var(--text-sm);
+           border-top: var(--rule-hair) solid var(--color-rule); border-bottom: var(--rule-hair) solid var(--color-rule); }
+  .macro div { display: flex; gap: var(--space-2xs); align-items: baseline; white-space: nowrap; }
+  .macro dt { color: var(--color-muted); } .macro dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .macro .chg { color: var(--color-muted); font-size: var(--text-xs); }
+
+  /* Headline sentence — written from the current selection */
+  .headline { font-family: var(--font-display); font-weight: 500; font-size: var(--text-3xl); line-height: 1.15;
+              letter-spacing: -0.015em; max-width: 32ch; margin: var(--space-lg) 0 var(--space-2xs); text-wrap: balance; }
+  .detail { color: var(--color-ink-2); max-width: 72ch; margin: 0 0 var(--space-lg); text-wrap: pretty; }
+
+  /* Filters — scope everything below */
+  .filters { display: flex; flex-wrap: wrap; gap: var(--space-2xs); align-items: center; }
+  .filters + .filters { margin: var(--space-2xs) 0 var(--space-md); }
+  .filters input[type=search], .filters select { font: inherit; font-size: var(--text-sm); color: inherit; background: var(--color-paper);
+             border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-input); padding: var(--space-2xs) var(--space-xs);
+             min-width: 0; min-height: 44px; transition: border-color var(--dur-short) var(--ease-out); }
+  .filters input[type=search]:hover, .filters select:hover { border-color: var(--color-ink); }
+  .filters input[type=search] { flex: 1 1 14rem; }
+  .range { display: inline-flex; border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-input); padding: 0; margin: 0; overflow: hidden; }
+  .range label { position: relative; }
+  .range input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .range span { display: inline-flex; align-items: center; min-height: 42px; padding: 0 var(--space-xs); font-size: var(--text-sm); cursor: pointer;
+                transition: background-color var(--dur-short) var(--ease-out); }
+  .range span:hover { background: var(--color-paper-2); }
+  .range input:checked + span { background: var(--color-ink); color: var(--color-paper); }
+  .range input:focus-visible + span { outline: 2px solid var(--color-focus); outline-offset: -4px; }
+  .range input:disabled + span { color: var(--color-rule); cursor: default; background: none; }
+  .check { display: inline-flex; align-items: center; gap: var(--space-2xs); font-size: var(--text-sm); min-height: 44px; cursor: pointer; padding-right: var(--space-2xs); }
+  .check input { width: 18px; height: 18px; accent-color: var(--color-ink); margin: 0; }
+  .text-btn { font-size: var(--text-sm); background: none; border: 0; cursor: pointer; white-space: nowrap;
+              padding: var(--space-2xs); min-height: 44px; color: var(--color-accent-ink);
+              text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  .text-btn:hover { text-decoration-thickness: 2px; }
+  .text-btn:disabled { color: var(--color-muted); text-decoration: none; cursor: default; }
+  .count { margin-left: auto; font-size: var(--text-sm); white-space: nowrap; }
+
+  /* Layout */
+  .grid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 3fr); gap: var(--space-xl); align-items: start; }
+  h2 { font-size: var(--text-xl); line-height: 1.15; }
+  .sub { font-size: var(--text-sm); color: var(--color-muted); margin: var(--space-3xs) 0 var(--space-sm); max-width: 64ch; }
+  .block { margin-top: var(--space-2xl); }
+
+  /* The market field — the one bold element */
+  .field { background: var(--color-paper-2); border-radius: var(--radius-field); padding: var(--space-md) var(--space-md) var(--space-sm); min-width: 0; }
+  .ind-head, .ind-row { display: grid; grid-template-columns: minmax(0, 13rem) 5rem minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-md); align-items: center; }
+  .ind-head { font-size: var(--text-xs); color: var(--color-muted); padding: 0 var(--space-2xs) var(--space-2xs); }
+  .ind-head .mvh { text-align: center; white-space: nowrap; }
+  .ind-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 13rem) 5rem minmax(0, 1fr) minmax(0, 1.1fr);
+             gap: var(--space-md); align-items: center; width: 100%; min-height: 38px; padding: 0 var(--space-2xs); cursor: pointer;
+             border-radius: var(--radius-input); transition: background-color var(--dur-short) var(--ease-out); }
+  .ind-row:hover { background: var(--color-paper); }
+  .ind-row:active { background: var(--color-rule); }
+  .ind-row:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+  .ind-row .name { font-family: var(--font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ind-row[aria-pressed=true] { background: var(--color-paper); }
+  .ind-row[aria-pressed=true] .name { font-weight: 600; }
+  .ind-row.bench { cursor: default; border-bottom: var(--rule-hair) solid var(--color-rule); border-radius: 0; margin-bottom: var(--space-3xs); }
+  .ind-row.bench:hover { background: none; }
+  .ind-row.bench .name { font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-muted); }
+  .focused .ind-row:not([aria-pressed=true]):not(.bench) .bar { background: var(--color-rule); }
+  .val { display: flex; align-items: center; gap: var(--space-2xs); min-width: 0; }
+  .bar { display: block; height: var(--bar); flex: none; }
+  .val .bar { background: var(--color-accent); border-radius: 0 var(--radius-bar) var(--radius-bar) 0; }
+  .lbl { font-size: var(--text-xs); color: var(--color-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .mv { display: grid; grid-template-columns: 1fr 1fr; align-items: center; height: 100%; }
+  .mv .half { display: flex; align-items: center; gap: var(--space-3xs); min-width: 0; height: 100%; }
+  .mv .neg { justify-content: flex-end; }
+  .mv .pos { border-left: var(--rule-hair) solid var(--color-muted); }
+  .mv .neg .bar { background: var(--color-loss); border-radius: var(--radius-bar) 0 0 var(--radius-bar); }
+  .mv .pos .bar { background: var(--color-gain); border-radius: 0 var(--radius-bar) var(--radius-bar) 0; }
+  .spark { width: 5rem; height: 22px; display: block; overflow: visible; }
+  .spark polyline { fill: none; stroke: var(--color-ink-2); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+  .spark circle { fill: var(--color-accent); }
+
+  /* Movers */
+  .side { display: grid; gap: var(--space-xl); }
+  .side h2 { margin-bottom: var(--space-2xs); }
+  .movers { list-style: none; margin: 0; padding: 0; }
+  .movers li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-sm); align-items: baseline;
+               border-bottom: var(--rule-hair) solid var(--color-rule); font-size: var(--text-sm); }
+  .movers li.empty { padding: var(--space-2xs) 0; color: var(--color-muted); display: block; }
+
+  /* Instrument name buttons (open the detail panel) */
+  .open { all: unset; cursor: pointer; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          padding: var(--space-2xs) 0; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px;
+          transition: text-decoration-color var(--dur-short) var(--ease-out); }
+  .open:hover { text-decoration-color: currentColor; }
+  .open:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  .sym { color: var(--color-muted); font-size: var(--text-xs); margin-left: var(--space-2xs); font-weight: 400; }
+  .flag { color: var(--color-muted); font-size: var(--text-xs); margin-left: var(--space-3xs); }
+
+  /* Watch star */
+  .star { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+          border-radius: var(--radius-input); color: var(--color-muted); }
+  .star:hover { color: var(--color-ink); background: var(--color-paper-2); }
+  .star:focus-visible { outline: 2px solid var(--color-focus); }
+  .star svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .star[aria-pressed=true] { color: var(--color-accent-ink); }
+  .star[aria-pressed=true] svg { fill: var(--color-accent); stroke: var(--color-accent-ink); }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+  th, td { padding: var(--space-3xs) var(--space-xs); border-bottom: var(--rule-hair) solid var(--color-rule); text-align: left; white-space: nowrap; }
+  td.co { max-width: 22rem; font-weight: 500; }
+  thead th { font-weight: 400; color: var(--color-muted); border-bottom-color: var(--color-ink); padding-block: var(--space-xs); }
+  th button { all: unset; cursor: pointer; white-space: nowrap; display: inline-block; padding: var(--space-xs) 0; margin: calc(-1 * var(--space-xs)) 0; }
+  th button:hover { color: var(--color-ink); }
+  th button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  th[aria-sort=ascending] button::after { content: " ↑"; }
+  th[aria-sort=descending] button::after { content: " ↓"; }
+  .num { text-align: right; }
+  td.w { width: 40px; padding-right: 0; }
+  td.empty { padding: var(--space-xl) var(--space-xs); color: var(--color-muted); white-space: normal; }
+
+  /* 52-week range meter */
+  .meter { position: relative; display: inline-block; width: 5.5rem; height: 4px; background: var(--color-rule); border-radius: 2px; vertical-align: middle; }
+  .meter i { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+             background: var(--color-ink); box-shadow: 0 0 0 2px var(--color-paper); }
+
+  /* Portfolio */
+  .pf-summary { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-xl); margin: var(--space-sm) 0 var(--space-md); }
+  .pf-summary div { min-width: 0; }
+  .pf-summary dt { font-size: var(--text-sm); color: var(--color-muted); }
+  .pf-summary dd { margin: 0; font-size: var(--text-xl); font-weight: 600; }
+  .pf-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-xl); align-items: start; }
+  .expo { list-style: none; padding: 0; margin: 0; font-size: var(--text-sm); }
+  .expo li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 3.5rem; gap: var(--space-xs); align-items: center; padding: var(--space-3xs) 0; }
+  .expo .bar { background: var(--color-accent); border-radius: 0 var(--radius-bar) var(--radius-bar) 0; }
+  .file-btn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .file-btn:focus-within { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-2xs); align-items: center; }
+  .note { font-size: var(--text-sm); color: var(--color-ink-2); }
+
+  /* Detail panel */
+  dialog { border: 0; padding: 0; background: var(--color-paper); color: var(--color-ink); width: min(46rem, 100% - 2 * var(--space-sm));
+           max-height: calc(100dvh - 2 * var(--space-lg)); border-radius: var(--radius-field); box-shadow: 0 30px 80px -30px var(--color-ink); }
+  dialog::backdrop { background: color-mix(in oklab, var(--color-ink) 45%, transparent); }
+  .dlg { padding: var(--space-lg); }
+  .dlg header { display: flex; justify-content: space-between; gap: var(--space-sm); align-items: start; }
+  .dlg h2 { font-size: var(--text-2xl); line-height: 1.1; }
+  .dlg .close { all: unset; cursor: pointer; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-input); flex: none; }
+  .dlg .close:hover { background: var(--color-paper-2); }
+  .dlg .close:focus-visible { outline: 2px solid var(--color-focus); }
+  .dlg .close svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.5; }
+  .price-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-xs); margin: var(--space-sm) 0; }
+  .price-line .big { font-size: var(--text-2xl); font-weight: 600; }
+  .chart { position: relative; margin: var(--space-sm) 0; }
+  .chart svg { width: 100%; height: 200px; display: block; overflow: visible; }
+  .chart .grid-l { stroke: var(--color-rule); stroke-width: 1; }
+  .chart .axis-t { fill: var(--color-muted); font-size: 11px; font-family: var(--font-body); }
+  .chart .line { fill: none; stroke: var(--color-ink-2); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .area { fill: var(--color-ink-2); opacity: 0.1; }
+  .chart .xh { stroke: var(--color-ink); stroke-width: 1; }
+  .chart .dot { fill: var(--color-ink); stroke: var(--color-paper); stroke-width: 2; }
+  .readout { font-size: var(--text-sm); min-height: 1.5em; }
+  .readout strong { font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--space-sm) var(--space-md); margin: var(--space-md) 0; }
+  .stats dt { font-size: var(--text-xs); color: var(--color-muted); }
+  .stats dd { margin: 0; font-weight: 500; }
+  .about { font-size: var(--text-sm); color: var(--color-ink-2); max-width: 65ch; }
+  .holding { display: flex; flex-wrap: wrap; gap: var(--space-2xs); align-items: center; margin-top: var(--space-md); padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
+  .holding label { font-size: var(--text-sm); }
+  .holding input { font: inherit; width: 8rem; min-height: 44px; padding: var(--space-2xs) var(--space-xs); color: inherit; background: var(--color-paper);
+                   border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-input); }
+
+  /* Tooltip — values lead, labels follow */
+  .tip { position: fixed; z-index: 10; pointer-events: none; background: var(--color-ink); color: var(--color-paper);
+         border-radius: var(--radius-input); padding: var(--space-2xs) var(--space-xs); font-size: var(--text-xs); line-height: 1.45; max-width: 16rem; }
+  .tip strong { display: block; font-size: var(--text-sm); font-weight: 600; }
+  .tip[hidden] { display: none; }
+
+  footer { padding: var(--space-xl) 0 var(--space-2xl); font-size: var(--text-xs); max-width: 70ch; }
+
+  @media (max-width: 960px) {
+    .grid, .pf-grid { grid-template-columns: minmax(0, 1fr); }
+    .side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 720px) {
+    .field { padding: var(--space-sm) var(--space-2xs); margin: 0 calc(-1 * var(--space-2xs)); }
+    .side { grid-template-columns: minmax(0, 1fr); }
+    .ind-head, .ind-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-sm); }
+    .ind-head .vh, .ind-head .sh, .ind-row .val, .ind-row .spark { display: none; }
+    .nav .updated { display: none; }
+    .count { margin-left: 0; }
+    .range span { padding: 0 var(--space-2xs); }
+    .dlg { padding: var(--space-md); }
+  }
+  @media (max-width: 400px) { .wide { display: none; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-star" viewBox="0 0 16 16"><path d="M8 1.5l1.9 4 4.3.5-3.2 3 .9 4.3L8 11.1l-3.9 2.2.9-4.3-3.2-3 4.3-.5z" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 18 18"><path d="M3 3l12 12M15 3L3 15" stroke-linecap="round"/></symbol>
+</svg>
+<div class="wrap">
+  <header class="nav">
+    <h1>JSE industry tracker</h1>
+    <div class="meta">
+      <span class="updated muted" id="updated"></span>
+      <a class="chip" href="https://www.easyequities.co.za/" rel="noopener"><span class="wide">Open&nbsp;</span>EasyEquities</a>
+    </div>
+  </header>
+
+  <dl class="macro" id="macro" aria-label="Rand and commodities"></dl>
+
+  <main>
+    <p class="headline" id="headline">Loading today’s prices…</p>
+    <p class="detail" id="detail">&nbsp;</p>
+
+    <div class="filters" role="search">
+      <input type="search" id="q" placeholder="Search company, ETF or ticker" aria-label="Search company, ETF or ticker">
+      <select id="industry" aria-label="Industry"><option value="">All industries</option></select>
+      <select id="show" aria-label="Show"><option value="">Everything</option><option value="watch">My watchlist</option><option value="portfolio">My portfolio</option></select>
+      <fieldset class="range" id="range"><legend class="sr">Time range</legend></fieldset>
+    </div>
+    <div class="filters">
+      <select id="move" aria-label="Move"><option value="">Up or down</option><option value="up">Up</option><option value="down">Down</option></select>
+      <select id="minYield" aria-label="Dividend yield"><option value="">Any dividend yield</option><option value="2">Yield 2% or more</option><option value="4">Yield 4% or more</option><option value="6">Yield 6% or more</option></select>
+      <select id="maxPe" aria-label="Price to earnings"><option value="">Any P/E</option><option value="10">P/E under 10</option><option value="15">P/E under 15</option><option value="20">P/E under 20</option></select>
+      <label class="check"><input type="checkbox" id="dual" checked> Count dual-listed companies in value weights</label>
+      <button class="text-btn" id="reset" type="button" disabled>Clear filters</button>
+      <button class="text-btn" id="copy" type="button">Copy link</button>
+      <button class="text-btn" id="export" type="button">Export CSV</button>
+      <span class="muted count" id="count" aria-live="polite"></span>
+    </div>
+
+    <div class="grid">
+      <section aria-labelledby="ind-h">
+        <div class="field" id="ind-panel">
+          <h2 id="ind-h">Industries</h2>
+          <p class="sub">Market value, recent trend and average move, largest first. Select an industry to focus the dashboard.</p>
+          <div class="ind-head" aria-hidden="true"><span>Industry</span><span class="sh">Trend</span><span class="vh">Market value (R bn)</span><span class="mvh" id="mv-head">Average move</span></div>
+          <div id="bench"></div>
+          <div id="industries" role="group" aria-labelledby="ind-h"></div>
+        </div>
+      </section>
+
+      <div class="side">
+        <section aria-labelledby="up-h"><h2 id="up-h">Biggest risers</h2><ol class="movers" id="risers"></ol></section>
+        <section aria-labelledby="dn-h"><h2 id="dn-h">Biggest fallers</h2><ol class="movers" id="fallers"></ol></section>
+      </div>
+    </div>
+
+    <section class="block" aria-labelledby="pf-h">
+      <h2 id="pf-h">My portfolio</h2>
+      <p class="sub">Saved only in this browser. Add shares from any company’s detail panel, or import a CSV with a ticker column and a shares (or units) column.</p>
+      <div id="portfolio"></div>
+      <div class="actions">
+        <label class="chip file-btn">Import CSV<input type="file" id="import" accept=".csv,text/csv"></label>
+        <button class="text-btn" id="clear-pf" type="button">Remove all holdings</button>
+        <span class="note" id="import-note" role="status"></span>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="co-h">
+      <h2 id="co-h" tabindex="-1">Companies</h2>
+      <p class="sub">Every company here can be bought on EasyEquities. Select a name for its price history and details. <span class="flag">✱</span> marks dual-listed companies, counted at their full global value.</p>
+      <div class="table-wrap"><table aria-labelledby="co-h"><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+
+    <section class="block" aria-labelledby="etf-h">
+      <h2 id="etf-h">ETFs</h2>
+      <p class="sub">Popular exchange-traded funds on EasyEquities. Search, move, watchlist and portfolio filters apply here too.</p>
+      <div class="table-wrap"><table aria-labelledby="etf-h"><thead><tr id="etf-head"></tr></thead><tbody id="etf-rows"></tbody></table></div>
+    </section>
+  </main>
+
+  <footer class="muted">Prices from Yahoo Finance, refreshed weekdays after the JSE closes, and may be delayed. Market value and fundamentals as reported by Yahoo. <span id="missing"></span>This isn’t financial advice.</footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="d-name"><div class="dlg" id="dlg-body"></div></dialog>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script>
+const RANGES = [['1D', '1D', 0], ['1W', '1W', 5], ['1M', '1M', 21], ['3M', '3M', 63], ['YTD', 'YTD', null], ['1Y', '1Y', null]];
+const DEFAULTS = { q: '', industry: '', move: '', range: '1D', show: '', minYield: '', maxPe: '', dual: true, sort: 'market_cap', dir: -1, esort: 'ret', edir: -1 };
+const state = { ...DEFAULTS };
+let data, dateText, H, M, bySym, all;
+
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 2) => n === '' || n == null || isNaN(n) ? '–' : n.toLocaleString('en-ZA', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = n => n === '' || n == null || isNaN(n) ? '–' : (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n)) + '%';
+const bn = n => 'R' + fmt(n / 1e9, 0) + ' bn';
+const rand = (v, s) => v === '' || v == null ? null : s.currency === 'ZAc' ? v / 100 : v;
+const tone = n => n > 0 ? 'gain' : n < 0 ? 'loss' : '';
+const has = v => v !== '' && v != null && !isNaN(v);
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const star = (s) => `<button class="star" data-watch="${esc(s)}" aria-pressed="${watch.has(s)}" aria-label="Watch ${esc(s)}"><svg aria-hidden="true"><use href="#i-star"/></svg></button>`;
+
+// Per-viewer storage: watchlist + holdings. Must work when storage is blocked.
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const watch = new Set(store.get('jse.watch', []));
+let holdings = store.get('jse.holdings', {});
+
+// ---------- History & returns ----------
+function startIndex(dates, range) {
+  const n = dates.length;
+  if (!n) return null;
+  if (range === '1Y') return 0;
+  if (range === 'YTD') {
+    const jan = dates[n - 1].slice(0, 4) + '-01-01';
+    const i = dates.findLastIndex(d => d < jan);
+    return i < 0 ? 0 : i;
+  }
+  const back = RANGES.find(r => r[0] === range)[2];
+  return Math.max(0, n - 1 - back);
+}
+const lastIdx = s => { for (let i = s.length - 1; i >= 0; i--) if (s[i] != null) return i; return -1; };
+function seriesReturn(s, i0) {
+  if (!s) return null;
+  const j = lastIdx(s); let i = i0;
+  while (i < j && s[i] == null) i++;
+  return j > i && s[i] ? (s[j] / s[i] - 1) * 100 : null;
+}
+function ret(inst) {
+  if (state.range === '1D') {
+    if (has(inst.change_pct)) return inst.change_pct;
+    const s = H.series[inst.symbol]; const j = s ? lastIdx(s) : -1;
+    return j > 0 ? (s[j] / s[j - 1] - 1) * 100 : null;
+  }
+  return seriesReturn(H.series[inst.symbol], startIndex(H.dates, state.range));
+}
+const rangePhrase = () => ({ '1D': `on ${dateText}`, '1W': 'over the past week', '1M': 'over the past month',
+  '3M': 'over the past three months', 'YTD': 'since 1 January', '1Y': 'over the past year' })[state.range];
+const rangeShort = () => ({ '1D': 'Today', '1W': '1 week', '1M': '1 month', '3M': '3 months', 'YTD': 'Year to date', '1Y': '1 year' })[state.range];
+// Sparkline window: the selected range, or the last month when looking at a single day.
+const sparkStart = () => state.range === '1D' ? startIndex(H.dates, '1M') : startIndex(H.dates, state.range);
+
+function sparkSvg(values) {
+  const v = values.filter(x => x != null);
+  if (v.length < 2) return '<svg class="spark" aria-hidden="true"></svg>';
+  const lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 1;
+  const pts = v.map((x, i) => [(i / (v.length - 1)) * 80, 20 - ((x - lo) / span) * 18]);
+  const last = pts[pts.length - 1];
+  return `<svg class="spark" viewBox="0 0 80 22" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')}"/><circle cx="${last[0]}" cy="${last[1]}" r="2"/></svg>`;
+}
+// Equal-weighted index of several series, each rebased to 1 at the window start.
+function groupIndex(symbols, i0) {
+  const ss = symbols.map(s => H.series[s]).filter(Boolean);
+  if (!ss.length) return [];
+  const out = [];
+  for (let i = i0; i < H.dates.length; i++) {
+    const vals = ss.map(s => s[i] != null && s[i0] ? s[i] / s[i0] : null).filter(x => x != null);
+    out.push(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null);
+  }
+  return out;
+}
+
+// ---------- Filters ----------
+const matchQ = s => { const q = state.q.toLowerCase(); return !q || s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q); };
+const matchMove = s => { if (!state.move) return true; const r = ret(s); return state.move === 'up' ? r > 0 : r < 0; };
+const matchShow = s => !state.show || (state.show === 'watch' ? watch.has(s.symbol) : holdings[s.symbol] > 0);
+const matchScreen = s => (!state.minYield || (has(s.div_yield) && s.div_yield >= +state.minYield)) && (!state.maxPe || (has(s.pe) && s.pe > 0 && s.pe < +state.maxPe));
+const baseMatch = s => matchQ(s) && matchMove(s) && matchShow(s) && matchScreen(s);
+const selection = () => data.stocks.filter(s => baseMatch(s) && (!state.industry || s.industry === state.industry));
+const etfSelection = () => data.etfs.filter(s => matchQ(s) && matchMove(s) && matchShow(s));
+const counts = s => has(s.market_cap) && (state.dual || !s.dual_listed);
+
+function weighted(list) {
+  const w = list.map(s => [ret(s), s]).filter(([r, s]) => r != null && counts(s));
+  const cap = w.reduce((t, [, s]) => t + s.market_cap, 0);
+  return cap ? w.reduce((t, [r, s]) => t + r * s.market_cap, 0) / cap : null;
+}
+
+// ---------- Rendering ----------
+function renderMacro() {
+  const i0 = state.range === '1D' ? null : startIndex(H.dates, state.range);
+  const startDate = i0 == null ? null : H.dates[i0];
+  $('macro').innerHTML = Object.entries(M.labels || {}).map(([sym, { label, unit }]) => {
+    const s = M.series[sym]; if (!s) return '';
+    const j = lastIdx(s); if (j < 0) return '';
+    let r;
+    if (startDate == null) r = j > 0 ? (s[j] / s[j - 1] - 1) * 100 : null;
+    else { const k = M.dates.findIndex(d => d >= startDate); r = seriesReturn(s, k < 0 ? 0 : k); }
+    const v = unit === 'R' ? 'R' + fmt(s[j], 2) : '$' + fmt(s[j], 0);
+    return `<div><dt>${esc(label)}</dt><dd>${v} <span class="chg">${pct(r)}</span></dd></div>`;
+  }).join('');
+}
+
+function industryRows() {
+  return data.industries.map(i => {
+    const st = data.stocks.filter(s => s.industry === i.industry && baseMatch(s));
+    const rs = st.map(ret).filter(r => r != null);
+    return { industry: i.industry, symbols: st.map(s => s.symbol), count: st.length,
+             cap: st.filter(counts).reduce((t, s) => t + s.market_cap, 0),
+             avg: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : null };
+  }).sort((a, b) => b.cap - a.cap);
+}
+
+function renderHeadline(list, rows) {
+  if (!list.length) {
+    $('headline').textContent = 'No companies match these filters.';
+    $('detail').textContent = 'Change the search or clear the filters.';
+    return;
+  }
+  const w = weighted(list) ?? 0;
+  const subject = state.industry ? state.industry
+    : state.show === 'watch' ? 'Your watchlist' : state.show === 'portfolio' ? 'Your holdings'
+    : list.length === data.stocks.length ? `The JSE’s ${list.length} leaders` : `These ${list.length} companies`;
+  const plural_ = !state.industry && !state.show;
+  const verb = Math.abs(w) < 0.005 ? (plural_ ? 'were flat' : 'was flat') : w > 0 ? `rose ${fmt(w)}%` : `slipped ${fmt(-w)}%`;
+  $('headline').textContent = `${subject} ${verb} ${rangePhrase()}, weighted by value.`;
+
+  const parts = [];
+  const bench = Object.entries(data.benchmarks).map(([code, label]) => [label, ret({ symbol: code })]).filter(([, r]) => r != null);
+  if (bench.length) parts.push(bench.map(([l, r], i) => `${i ? 'the' : 'The'} ${l} ${r >= 0 ? 'rose' : 'fell'} ${fmt(Math.abs(r))}%`).join('; ') + '.');
+  const rs = list.map(ret);
+  parts.push(`${rs.filter(r => r > 0).length} rose and ${rs.filter(r => r < 0).length} fell.`);
+  const moved = rows.filter(r => r.avg != null && r.count);
+  if (!state.industry && moved.length > 1) {
+    const by = [...moved].sort((a, b) => b.avg - a.avg);
+    parts.push(`${by[0].industry} led; ${by[by.length - 1].industry} lagged.`);
+  }
+  const big = list.map(s => [s, ret(s)]).filter(([, r]) => r != null).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+  if (big) parts.push(`Biggest single move: ${big[0].name}, ${pct(big[1])}.`);
+  if (!state.dual) parts.push('Dual-listed companies are left out of the weighting.');
+  $('detail').textContent = parts.join(' ');
+}
+
+function moveCell(r, maxMove) {
+  const w = r == null ? 0 : Math.min(Math.abs(r) / maxMove, 1) * 50;
+  const lbl = `<span class="lbl">${pct(r)}</span>`, bar = `<span class="bar" style="width:${w.toFixed(1)}%"></span>`;
+  return `<span class="mv" aria-hidden="true"><span class="half neg">${r < 0 ? lbl + bar : ''}</span><span class="half pos">${r != null && r >= 0 ? bar + lbl : ''}</span></span>`;
+}
+
+function renderIndustries(rows) {
+  const total = rows.reduce((t, r) => t + r.cap, 0);
+  const maxCap = Math.max(...rows.map(r => r.cap), 1);
+  const benchRet = ret({ symbol: 'J200' });
+  const maxMove = Math.max(...rows.map(r => Math.abs(r.avg ?? 0)), Math.abs(benchRet ?? 0), 0.5);
+  const i0 = sparkStart();
+  $('mv-head').textContent = `Average move, ${rangeShort().toLowerCase()}`;
+
+  $('bench').innerHTML = H.series.J200 ? `<div class="ind-row bench" role="img" aria-label="Top 40 index: ${pct(benchRet)}">
+      <span class="name">Top 40 index, for reference</span>${i0 != null ? sparkSvg(H.series.J200.slice(i0)) : '<span></span>'}<span class="val"></span>${moveCell(benchRet, maxMove)}</div>` : '';
+
+  $('ind-panel').classList.toggle('focused', !!state.industry);
+  $('industries').innerHTML = rows.map(r => {
+    const on = state.industry === r.industry;
+    const share = total ? r.cap / total * 100 : 0;
+    const tipText = [`${pct(r.avg)} on average, ${rangeShort().toLowerCase()}`, r.industry, plural(r.count, 'company', 'companies'), `${bn(r.cap)}, ${fmt(share, 1)}% of value`].join('|');
+    return `<button class="ind-row" data-industry="${esc(r.industry)}" aria-pressed="${on}" data-tip="${esc(tipText)}"
+      aria-label="${esc(`${r.industry}: ${bn(r.cap)}, ${fmt(share, 1)}% of value, ${rangeShort().toLowerCase()} ${pct(r.avg)} on average, ${plural(r.count, 'company', 'companies')}`)}">
+      <span class="name">${esc(r.industry)}</span>
+      ${i0 != null ? sparkSvg(groupIndex(r.symbols, i0)) : '<span></span>'}
+      <span class="val" aria-hidden="true"><span class="bar" style="width:${(r.cap / maxCap * 75).toFixed(1)}%"></span><span class="lbl">${fmt(r.cap / 1e9, 0)}</span></span>
+      ${moveCell(r.avg, maxMove)}</button>`;
+  }).join('');
+}
+
+function renderMovers(list) {
+  const priced = [...list, ...etfSelection()].map(s => [s, ret(s)]).filter(([, r]) => r != null);
+  const li = ([s, r]) => `<li><button class="open" data-open="${esc(s.symbol)}">${esc(s.name)}<span class="sym">${esc(s.symbol)}</span></button><span class="tnum ${tone(r)}">${pct(r)}</span></li>`;
+  const up = priced.filter(([, r]) => r > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const dn = priced.filter(([, r]) => r < 0).sort((a, b) => a[1] - b[1]).slice(0, 5);
+  $('risers').innerHTML = up.length ? up.map(li).join('') : '<li class="empty">Nothing rose in this selection.</li>';
+  $('fallers').innerHTML = dn.length ? dn.map(li).join('') : '<li class="empty">Nothing fell in this selection.</li>';
+}
+
+function meter(s) {
+  const p = rand(s.price, s), lo = rand(s.low52, s), hi = rand(s.high52, s);
+  if (!has(lo) || !has(hi) || hi <= lo) return '–';
+  const x = Math.min(Math.max((p - lo) / (hi - lo), 0), 1) * 100;
+  return `<span class="meter" role="img" aria-label="52-week range R${fmt(lo)} to R${fmt(hi)}; now ${fmt(x, 0)}% of the way up"><i style="left:${x.toFixed(1)}%"></i></span>`;
+}
+
+const COLS = [
+  { key: 'watch', label: '<span class="sr">Watch</span>', nosort: true },
+  { key: 'name', label: 'Company' },
+  { key: 'industry', label: 'Industry' },
+  { key: 'price', label: 'Price (R)', num: true },
+  { key: 'ret', label: () => rangeShort(), num: true },
+  { key: 'div_yield', label: 'Div. yield', num: true },
+  { key: 'pe', label: 'P/E', num: true },
+  { key: 'pos52', label: '52-week range', num: true },
+  { key: 'market_cap', label: 'Value (R bn)', num: true },
+];
+const ECOLS = [
+  { key: 'watch', label: '<span class="sr">Watch</span>', nosort: true },
+  { key: 'name', label: 'ETF' },
+  { key: 'industry', label: 'Holds' },
+  { key: 'price', label: 'Price (R)', num: true },
+  { key: 'ret', label: () => rangeShort(), num: true },
+  { key: 'pos52', label: '52-week range', num: true },
+];
+const sortVal = (s, k) => k === 'ret' ? ret(s) : k === 'pos52' ? (has(s.low52) && s.high52 > s.low52 ? (s.price - s.low52) / (s.high52 - s.low52) : null) : s[k];
+function sorted(list, key, dir) {
+  return [...list].sort((a, b) => {
+    const x = sortVal(a, key), y = sortVal(b, key);
+    const nx = x === '' || x == null, ny = y === '' || y == null;
+    if (nx || ny) return nx === ny ? 0 : nx ? 1 : -1;
+    return (typeof x === 'number' ? x - y : String(x).localeCompare(y)) * dir;
+  });
+}
+function headHtml(cols, sortKey, dir, attr) {
+  return cols.map(c => {
+    const label = typeof c.label === 'function' ? c.label() : c.label;
+    if (c.nosort) return `<th>${label}</th>`;
+    return `<th class="${c.num ? 'num' : ''}" aria-sort="${sortKey === c.key ? (dir > 0 ? 'ascending' : 'descending') : 'none'}"><button ${attr}="${c.key}">${label}</button></th>`;
+  }).join('');
+}
+
+function renderTables(list) {
+  $('head').innerHTML = headHtml(COLS, state.sort, state.dir, 'data-key');
+  const rows = sorted(list, state.sort, state.dir);
+  $('rows').innerHTML = rows.length ? rows.map(s => { const r = ret(s); return `<tr>
+      <td class="w">${star(s.symbol)}</td>
+      <td class="co"><button class="open" data-open="${esc(s.symbol)}">${esc(s.name)}<span class="sym">${esc(s.symbol)}</span>${s.dual_listed ? '<span class="flag" title="Dual-listed: counted at full global value">✱</span>' : ''}</button></td>
+      <td>${esc(s.industry)}</td>
+      <td class="num">${fmt(rand(s.price, s))}</td>
+      <td class="num ${tone(r)}">${pct(r)}</td>
+      <td class="num">${has(s.div_yield) ? fmt(s.div_yield) + '%' : '–'}</td>
+      <td class="num">${has(s.pe) ? fmt(s.pe, 1) : '–'}</td>
+      <td class="num">${meter(s)}</td>
+      <td class="num">${has(s.market_cap) ? fmt(s.market_cap / 1e9, 1) : '–'}</td></tr>`; }).join('')
+    : `<tr><td colspan="${COLS.length}" class="empty">No companies match. Change the search or clear the filters.</td></tr>`;
+
+  $('etf-head').innerHTML = headHtml(ECOLS, state.esort, state.edir, 'data-ekey');
+  const etfs = sorted(etfSelection(), state.esort, state.edir);
+  $('etf-rows').innerHTML = etfs.length ? etfs.map(s => { const r = ret(s); return `<tr>
+      <td class="w">${star(s.symbol)}</td>
+      <td class="co"><button class="open" data-open="${esc(s.symbol)}">${esc(s.name)}<span class="sym">${esc(s.symbol)}</span></button></td>
+      <td>${esc(s.industry)}</td>
+      <td class="num">${fmt(rand(s.price, s))}</td>
+      <td class="num ${tone(r)}">${pct(r)}</td>
+      <td class="num">${meter(s)}</td></tr>`; }).join('')
+    : `<tr><td colspan="${ECOLS.length}" class="empty">No ETFs match. Change the search or clear the filters.</td></tr>`;
+
+  $('count').textContent = `${list.length} of ${data.stocks.length} companies, ${etfs.length} ETFs`;
+}
+
+function renderPortfolio() {
+  const items = Object.entries(holdings).filter(([s, n]) => n > 0 && bySym[s]).map(([s, n]) => {
+    const inst = bySym[s], value = rand(inst.price, inst) * n, r = ret(inst);
+    return { inst, n, value, r, change: r == null ? null : value - value / (1 + r / 100) };
+  }).sort((a, b) => b.value - a.value);
+  const box = $('portfolio');
+  $('clear-pf').hidden = !items.length;
+  if (!items.length) { box.innerHTML = '<p class="note">No holdings yet.</p>'; return; }
+  const total = items.reduce((t, i) => t + i.value, 0);
+  const change = items.reduce((t, i) => t + (i.change ?? 0), 0);
+  const changePct = total - change ? change / (total - change) * 100 : 0;
+  const expo = {};
+  items.forEach(i => { expo[i.inst.industry] = (expo[i.inst.industry] || 0) + i.value; });
+  const ex = Object.entries(expo).sort((a, b) => b[1] - a[1]);
+  box.innerHTML = `
+    <dl class="pf-summary">
+      <div><dt>Value</dt><dd class="tnum">R${fmt(total)}</dd></div>
+      <div><dt>${esc(rangeShort())}</dt><dd class="tnum ${tone(change)}">${change < 0 ? '−' : '+'}R${fmt(Math.abs(change))} (${pct(changePct)})</dd></div>
+      <div><dt>Holdings</dt><dd>${items.length}</dd></div>
+    </dl>
+    <div class="pf-grid">
+      <div class="table-wrap"><table aria-label="Holdings"><thead><tr><th>Holding</th><th class="num">Shares</th><th class="num">Value (R)</th><th class="num">${esc(rangeShort())}</th><th class="num">Weight</th></tr></thead><tbody>
+        ${items.map(i => `<tr><td class="co"><button class="open" data-open="${esc(i.inst.symbol)}">${esc(i.inst.name)}<span class="sym">${esc(i.inst.symbol)}</span></button></td>
+          <td class="num">${fmt(i.n, i.n % 1 ? 4 : 0)}</td><td class="num">${fmt(i.value)}</td>
+          <td class="num ${tone(i.r)}">${pct(i.r)}</td><td class="num">${fmt(i.value / total * 100, 1)}%</td></tr>`).join('')}
+      </tbody></table></div>
+      <div><h3 class="sub" style="margin-top:0">Exposure by industry</h3><ul class="expo">
+        ${ex.map(([k, v]) => `<li><span>${esc(k)}</span><span class="bar" style="width:${(v / ex[0][1] * 100).toFixed(1)}%"></span><span class="lbl">${fmt(v / total * 100, 1)}%</span></li>`).join('')}
+      </ul></div>
+    </div>`;
+}
+
+function render() {
+  const list = selection(), rows = industryRows();
+  renderMacro(); renderHeadline(list, rows); renderIndustries(rows); renderMovers(list); renderTables(list); renderPortfolio();
+  $('reset').disabled = ['q', 'industry', 'move', 'show', 'minYield', 'maxPe'].every(k => !state[k]) && state.dual;
+  $('show').options[1].textContent = `My watchlist (${watch.size})`;
+  $('show').options[2].textContent = `My portfolio (${Object.values(holdings).filter(n => n > 0).length})`;
+  writeHash();
+}
+
+// ---------- Shareable links ----------
+function writeHash() {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(state)) if (v !== DEFAULTS[k]) p.set(k, v);
+  history.replaceState(null, '', p.toString() ? '#' + p : location.pathname + location.search);
+}
+function readHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  for (const k of Object.keys(DEFAULTS)) {
+    if (!p.has(k)) continue;
+    const v = p.get(k);
+    state[k] = typeof DEFAULTS[k] === 'number' ? (+v || DEFAULTS[k]) : typeof DEFAULTS[k] === 'boolean' ? v === 'true' : v;
+  }
+  if (!RANGES.some(r => r[0] === state.range) || (state.range !== '1D' && !H.dates.length)) state.range = '1D';
+}
+function syncControls() {
+  for (const k of ['q', 'industry', 'move', 'show', 'minYield', 'maxPe']) $(k).value = state[k];
+  $('dual').checked = state.dual;
+  const r = document.querySelector(`#range input[value="${state.range}"]`); if (r) r.checked = true;
+}
+
+// ---------- Detail panel ----------
+let lastFocus = null;
+function openDetail(sym) {
+  const s = bySym[sym]; if (!s) return;
+  lastFocus = document.activeElement;
+  const r = ret(s), today = has(s.change_pct) ? s.change_pct : null;
+  const stats = [
+    ['Today', pct(today)], [rangeShort(), state.range === '1D' ? null : pct(r)],
+    ['52-week low', has(s.low52) ? 'R' + fmt(rand(s.low52, s)) : '–'], ['52-week high', has(s.high52) ? 'R' + fmt(rand(s.high52, s)) : '–'],
+    ...(s.etf ? [] : [['P/E', has(s.pe) ? fmt(s.pe, 1) : '–'], ['Dividend yield', has(s.div_yield) ? fmt(s.div_yield) + '%' : '–'],
+                      ['Beta', has(s.beta) ? fmt(s.beta) : '–'], ['Market value', has(s.market_cap) ? bn(s.market_cap) : '–']]),
+  ].filter(([, v]) => v != null);
+  $('dlg-body').innerHTML = `
+    <header><div><h2 id="d-name">${esc(s.name)}</h2><p class="sub" style="margin:0">${esc(s.symbol)}, ${esc(s.industry)}${s.etf ? ' ETF' : ''}</p></div>
+      <button class="close" id="d-close" aria-label="Close"><svg aria-hidden="true"><use href="#i-close"/></svg></button></header>
+    <div class="price-line"><span class="big tnum">R${fmt(rand(s.price, s))}</span><span class="${tone(today)}">${pct(today)} today</span>${star(s.symbol)}</div>
+    <div class="chart" id="d-chart"></div>
+    <dl class="stats">${stats.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd class="tnum">${v}</dd></div>`).join('')}</dl>
+    ${s.dual_listed ? '<p class="note">Dual-listed: its primary listing is outside the JSE, and its market value is the whole company’s global value.</p>' : ''}
+    ${s.summary ? `<p class="about">${esc(s.summary)}${s.summary.length >= 600 ? '…' : ''}</p>` : ''}
+    <div class="holding">
+      <label for="d-units">Shares you hold</label>
+      <input type="number" id="d-units" min="0" step="any" inputmode="decimal" value="${holdings[s.symbol] || ''}">
+      <button class="chip" id="d-save" type="button">Save holding</button>
+      <span class="note" id="d-saved" role="status"></span>
+    </div>
+    <p class="actions" style="margin-top:var(--space-md)"><a class="chip" href="https://www.easyequities.co.za/" rel="noopener">Buy on EasyEquities</a>
+      ${s.website ? `<a class="text-btn" href="${esc(s.website)}" rel="noopener">Company website</a>` : ''}</p>`;
+  drawChart(s);
+  $('d-close').onclick = () => $('dlg').close();
+  $('d-save').onclick = () => {
+    const n = parseFloat($('d-units').value);
+    if (n > 0) holdings[s.symbol] = n; else delete holdings[s.symbol];
+    store.set('jse.holdings', holdings);
+    $('d-saved').textContent = n > 0 ? `Saved: ${fmt(n, n % 1 ? 4 : 0)} shares.` : 'Holding removed.';
+    render();
+  };
+  $('dlg').showModal();
+}
+
+function drawChart(s) {
+  const box = $('d-chart'), series = H.series[s.symbol];
+  const i0 = sparkStart();
+  if (!series || i0 == null) { box.innerHTML = '<p class="note">No price history available.</p>'; return; }
+  const pts = [];
+  for (let i = i0; i < H.dates.length; i++) if (series[i] != null) pts.push([H.dates[i], rand(series[i], s)]);
+  if (pts.length < 2) { box.innerHTML = '<p class="note">Not enough price history for this range.</p>'; return; }
+  const W = 640, Ht = 200, pl = 0, pr = 56, pt = 8, pb = 22;
+  const vals = pts.map(p => p[1]), lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.08 || 1;
+  const y0 = lo - pad, y1 = hi + pad;
+  const X = i => pl + i / (pts.length - 1) * (W - pl - pr), Y = v => pt + (1 - (v - y0) / (y1 - y0)) * (Ht - pt - pb);
+  const ticks = [y0 + (y1 - y0) * 0.15, (y0 + y1) / 2, y1 - (y1 - y0) * 0.15];
+  const line = pts.map((p, i) => `${X(i).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+  const dfmt = d => new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: pts.length > 80 ? 'numeric' : undefined });
+  const first = pts[0], last = pts[pts.length - 1];
+  box.innerHTML = `
+    <p class="readout" id="d-read" aria-live="off"></p>
+    <svg viewBox="0 0 ${W} ${Ht}" preserveAspectRatio="none" tabindex="0" role="img"
+      aria-label="Price from ${dfmt(first[0])} to ${dfmt(last[0])}: R${fmt(first[1])} to R${fmt(last[1])}, low R${fmt(lo)}, high R${fmt(hi)}. Use arrow keys to read values.">
+      ${ticks.map(t => `<line class="grid-l" x1="0" x2="${W - pr}" y1="${Y(t)}" y2="${Y(t)}"/><text class="axis-t" x="${W - pr + 6}" y="${Y(t) + 4}">R${fmt(t, t > 100 ? 0 : 2)}</text>`).join('')}
+      <polygon class="area" points="${X(0)},${Ht - pb} ${line} ${X(pts.length - 1)},${Ht - pb}"/>
+      <polyline class="line" points="${line}"/>
+      <text class="axis-t" x="0" y="${Ht - 4}">${dfmt(first[0])}</text>
+      <text class="axis-t" x="${W - pr}" y="${Ht - 4}" text-anchor="end">${dfmt(last[0])}</text>
+      <line class="xh" id="d-xh" y1="${pt}" y2="${Ht - pb}" visibility="hidden"/>
+      <circle class="dot" id="d-dot" r="4" visibility="hidden"/>
+    </svg>
+    <p class="sub">${dfmt(first[0])}: R${fmt(first[1])}. ${dfmt(last[0])}: R${fmt(last[1])}. Low R${fmt(lo)}, high R${fmt(hi)}.</p>`;
+  const svg = box.querySelector('svg');
+  let cur = pts.length - 1;
+  const show = i => {
+    cur = Math.max(0, Math.min(pts.length - 1, i));
+    const [d, v] = pts[cur], x = X(cur), y = Y(v);
+    for (const id of ['d-xh', 'd-dot']) $(id).setAttribute('visibility', 'visible');
+    $('d-xh').setAttribute('x1', x); $('d-xh').setAttribute('x2', x);
+    $('d-dot').setAttribute('cx', x); $('d-dot').setAttribute('cy', y);
+    const chg = (v / pts[0][1] - 1) * 100;
+    $('d-read').innerHTML = `<strong>R${fmt(v)}</strong> on ${esc(dfmt(d))}, ${pct(chg)} from the start of the range`;
+  };
+  svg.onpointermove = e => { const b = svg.getBoundingClientRect(); show(Math.round(((e.clientX - b.left) / b.width * W - pl) / (W - pl - pr) * (pts.length - 1))); };
+  svg.onpointerleave = () => { for (const id of ['d-xh', 'd-dot']) $(id).setAttribute('visibility', 'hidden'); $('d-read').textContent = ''; };
+  svg.onkeydown = e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); show(cur + (e.key === 'ArrowRight' ? 1 : -1)); $('d-read').setAttribute('aria-live', 'polite'); } };
+}
+
+// ---------- CSV import / export ----------
+function parseCsv(text) {
+  return text.trim().split(/\r?\n/).map(line => {
+    const out = []; let cur = '', q = false;
+    for (const ch of line) {
+      if (ch === '"') q = !q; else if ((ch === ',' || ch === ';') && !q) { out.push(cur.trim()); cur = ''; } else cur += ch;
+    }
+    out.push(cur.trim()); return out;
+  });
+}
+function importHoldings(text) {
+  const rows = parseCsv(text);
+  const head = rows[0].map(h => h.toLowerCase());
+  const sc = head.findIndex(h => /symbol|ticker|code|instrument|share code/.test(h));
+  const uc = head.findIndex(h => /quantity|units|shares|qty|holding/.test(h));
+  if (sc < 0 || uc < 0) return 'Couldn’t find a ticker column and a shares column. Add headers like “ticker” and “shares”.';
+  let added = 0; const unknown = [];
+  for (const r of rows.slice(1)) {
+    const sym = (r[sc] || '').toUpperCase().replace(/\.JO$/, '').replace(/^JSE:/, '').trim();
+    const n = parseFloat((r[uc] || '').replace(/\s/g, '').replace(',', '.'));
+    if (!sym || !(n > 0)) continue;
+    if (bySym[sym]) { holdings[sym] = n; added++; } else unknown.push(sym);
+  }
+  store.set('jse.holdings', holdings);
+  render();
+  return `Imported ${plural(added, 'holding', 'holdings')}.` + (unknown.length ? ` Not tracked here: ${unknown.slice(0, 8).join(', ')}${unknown.length > 8 ? '…' : ''}.` : '');
+}
+function exportCsv() {
+  const q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v;
+  const head = ['symbol', 'name', 'type', 'industry', 'price_rand', `move_${state.range}_pct`, 'div_yield_pct', 'pe', 'market_value_rand_bn', 'dual_listed'];
+  const lines = [...selection(), ...etfSelection()].map(s => [s.symbol, s.name, s.etf ? 'ETF' : 'company', s.industry, rand(s.price, s)?.toFixed(2),
+    ret(s)?.toFixed(2) ?? '', s.div_yield ?? '', s.pe ?? '', has(s.market_cap) ? (s.market_cap / 1e9).toFixed(1) : '', s.dual_listed ? 'yes' : ''].map(q).join(','));
+  const url = URL.createObjectURL(new Blob([[head.join(','), ...lines].join('\n')], { type: 'text/csv' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `jse-tracker-${state.range}-${H.dates.at(-1) || 'today'}.csv` });
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ---------- Tooltip ----------
+function showTip(el, x, y) {
+  const [value, ...lines] = el.dataset.tip.split('|');
+  const tip = $('tip'), strong = document.createElement('strong');
+  strong.textContent = value;
+  tip.replaceChildren(strong, ...lines.flatMap((l, i) => i ? [document.createElement('br'), l] : [l]));
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.max(8, Math.min(x + 12, innerWidth - r.width - 8)) + 'px';
+  tip.style.top = Math.min(y + 12, innerHeight - r.height - 8) + 'px';
+}
+const hideTip = () => { $('tip').hidden = true; };
+
+// ---------- Boot ----------
+fetch('data.json').then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => {
+  data = d;
+  data.etfs = (d.etfs || []).map(e => ({ ...e, etf: true }));
+  data.benchmarks = d.benchmarks || {};
+  H = d.history || { dates: [], series: {} };
+  M = d.macro || { dates: [], series: {}, labels: {} };
+  all = [...data.stocks, ...data.etfs];
+  bySym = Object.fromEntries(all.map(s => [s.symbol, s]));
+  const when = new Date(d.updated);
+  dateText = when.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' });
+  $('updated').textContent = 'Updated ' + when.toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' });
+  $('industry').innerHTML += d.industries.map(i => `<option>${esc(i.industry)}</option>`).join('');
+  $('range').insertAdjacentHTML('beforeend', RANGES.map(([v, label]) =>
+    `<label><input type="radio" name="range" value="${v}" ${v !== '1D' && !H.dates.length ? 'disabled' : ''}><span>${label}</span></label>`).join(''));
+  if (d.failed?.length) $('missing').textContent = `${plural(d.failed.length, 'company', 'companies')} couldn’t be updated today. `;
+
+  readHash(); syncControls();
+
+  const set = (k, v) => { state[k] = v; render(); };
+  $('q').oninput = e => set('q', e.target.value);
+  for (const k of ['industry', 'move', 'show', 'minYield', 'maxPe']) $(k).onchange = e => set(k, e.target.value);
+  $('dual').onchange = e => set('dual', e.target.checked);
+  $('range').onchange = e => set('range', e.target.value);
+  $('reset').onclick = () => { Object.assign(state, { q: '', industry: '', move: '', show: '', minYield: '', maxPe: '', dual: true }); syncControls(); render(); };
+  $('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText(location.href); $('copy').textContent = 'Link copied'; }
+    catch { $('copy').textContent = 'Copy the address bar'; }
+    setTimeout(() => { $('copy').textContent = 'Copy link'; }, 2500);
+  };
+  $('export').onclick = exportCsv;
+  $('import').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    $('import-note').textContent = importHoldings(await f.text());
+    e.target.value = '';
+  };
+  $('clear-pf').onclick = () => { holdings = {}; store.set('jse.holdings', holdings); $('import-note').textContent = 'All holdings removed.'; render(); };
+
+  // Delegated clicks: watch stars, detail panel, sorting.
+  document.addEventListener('click', e => {
+    const w = e.target.closest('[data-watch]');
+    if (w) {
+      const s = w.dataset.watch;
+      watch.has(s) ? watch.delete(s) : watch.add(s);
+      store.set('jse.watch', [...watch]);
+      document.querySelectorAll(`[data-watch="${CSS.escape(s)}"]`).forEach(b => b.setAttribute('aria-pressed', watch.has(s)));
+      if (state.show === 'watch') render(); else $('show').options[1].textContent = `My watchlist (${watch.size})`;
+      return;
+    }
+    const o = e.target.closest('[data-open]');
+    if (o) { openDetail(o.dataset.open); return; }
+    const k = e.target.closest('[data-key]')?.dataset.key;
+    if (k) { state.dir = state.sort === k ? -state.dir : (COLS.find(c => c.key === k).num ? -1 : 1); state.sort = k; render(); return; }
+    const ek = e.target.closest('[data-ekey]')?.dataset.ekey;
+    if (ek) { state.edir = state.esort === ek ? -state.edir : (ECOLS.find(c => c.key === ek).num ? -1 : 1); state.esort = ek; render(); }
+  });
+  $('dlg').addEventListener('close', () => lastFocus?.focus());
+  $('dlg').addEventListener('click', e => { if (e.target === $('dlg')) $('dlg').close(); });
+
+  const ind = $('industries');
+  ind.onclick = e => {
+    const r = e.target.closest('[data-industry]'); if (!r) return;
+    hideTip();
+    state.industry = state.industry === r.dataset.industry ? '' : r.dataset.industry;
+    $('industry').value = state.industry; render();
+    ind.querySelector(`[data-industry="${CSS.escape(r.dataset.industry)}"]`)?.focus();
+  };
+  ind.onpointermove = e => { const r = e.target.closest('[data-tip]'); r ? showTip(r, e.clientX, e.clientY) : hideTip(); };
+  ind.onpointerleave = hideTip;
+  ind.addEventListener('focusin', e => { const r = e.target.closest('[data-tip]'); if (r) { const b = r.getBoundingClientRect(); showTip(r, b.left + b.width / 2, b.bottom - 4); } });
+  ind.addEventListener('focusout', hideTip);
+  addEventListener('keydown', e => { if (e.key === 'Escape') hideTip(); });
+  addEventListener('hashchange', () => { readHash(); syncControls(); render(); });
+  render();
+}).catch(err => {
+  console.error('data.json failed to load — run the scraper, then serve the site folder.', err);
+  $('headline').textContent = 'Today’s prices aren’t available right now.';
+  $('detail').textContent = 'Try again in a few minutes.';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+name: Update stock data
+
+on:
+  schedule:
+    - cron: '30 16 * * 1-5'  # 18:30 SAST, after JSE close
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      MAIL_TO: ${{ secrets.MAIL_TO }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python stock-data-scraper.py
+        env:
+          WATCHLIST: ${{ vars.WATCHLIST }}  # optional, e.g. "SBK,STX40" — listed in the digest
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      # Daily digest email. Skipped unless the MAIL_* secrets are set (see README).
+      - name: Email digest
+        if: env.MAIL_TO != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: file://digest_subject.txt
+          html_body: file://digest.html
+          to: ${{ secrets.MAIL_TO }}
+          from: JSE industry tracker <${{ secrets.MAIL_USERNAME }}>

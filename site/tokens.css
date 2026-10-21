@@ -1,0 +1,60 @@
+/* Hallmark · genre: editorial · macrostructure: Bento Grid (dashboard) · theme: custom "Malachite" (vibe: soft luxury, African stone, Krugerrand gold)
+ * paper oklch(95.3% 0.008 140) · accent oklch(58% 0.11 78) gold · Gambetta + Switzer
+ * axes: light / soft-serif + sans / warm gold on cool green */
+:root {
+  --color-paper:    oklch(95.3% 0.008 140);  /* mist */
+  --color-paper-2:  oklch(92%   0.014 150);  /* chart field */
+  --color-rule:     oklch(84%   0.020 155);
+  --color-muted:    oklch(47%   0.030 165);
+  --color-ink:      oklch(32%   0.050 170);  /* malachite */
+  --color-ink-2:    oklch(46%   0.070 168);
+  --color-accent:   oklch(58%   0.110 78);   /* Krugerrand gold — value bars, CTA border */
+  --color-accent-ink: oklch(46% 0.090 75);
+  --color-focus:    oklch(46%   0.090 75);
+  /* Diverging pair, validated with dataviz validate_palette.js against --color-paper-2 */
+  --color-gain:     oklch(50%   0.12  250);
+  --color-loss:     oklch(52%   0.15  25);
+
+  --font-display: "Gambetta", ui-serif, Georgia, serif;
+  --font-body:    "Switzer", ui-sans-serif, system-ui, sans-serif;
+
+  /* Perfect-fourth scale */
+  --text-xs:  0.8125rem;
+  --text-sm:  0.875rem;
+  --text-md:  1rem;
+  --text-lg:  1.333rem;
+  --text-xl:  1.777rem;
+  --text-2xl: 2.369rem;
+  --text-3xl: clamp(1.75rem, 3.4vw, 2.8rem);
+
+  --space-3xs: 0.25rem; --space-2xs: 0.5rem; --space-xs: 0.75rem;
+  --space-sm:  1rem;    --space-md:  1.5rem; --space-lg: 2rem;
+  --space-xl:  3rem;    --space-2xl: 4.5rem; --space-3xl: 7rem;
+  --page-gutter: clamp(1rem, 4vw, 3rem);
+
+  --rule-hair: 1px;
+  --radius-chip: 999px;
+  --radius-input: 4px;
+  --radius-field: 10px;
+  --radius-bar: 4px;
+  --bar: 12px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-short: 180ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper:    oklch(22%  0.025 170);
+    --color-paper-2:  oklch(26%  0.030 170);
+    --color-rule:     oklch(36%  0.030 168);
+    --color-muted:    oklch(74%  0.025 150);
+    --color-ink:      oklch(94%  0.012 140);
+    --color-ink-2:    oklch(82%  0.050 160);
+    --color-accent:   oklch(76%  0.100 82);
+    --color-accent-ink: oklch(80% 0.090 82);
+    --color-focus:    oklch(80%  0.090 82);
+    --color-gain:     oklch(66%  0.12  250);
+    --color-loss:     oklch(66%  0.14  25);
+  }
+}

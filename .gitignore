@@ -1,0 +1,7 @@
+stockdata.csv
+site/data.json
+__pycache__/
+.venv/
+.hallmark/
+digest.html
+digest_subject.txt
