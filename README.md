@@ -1,6 +1,8 @@
-# Stock Data Scraper — EasyEquities / JSE
+# JSE Dashboard
 
 Pulls live data for JSE-listed companies tradable on EasyEquities, grouped into the top 20 South African industries, and saves them to a CSV with an industry summary.
+
+Live dashboard: https://lethuxololanga.github.io/jse-dashboard/
 
 ## Requirements
 
@@ -14,10 +16,10 @@ pip install -r requirements.txt
 ## Usage
 
 ```
-python stock-data-scraper.py
+python scraper.py
 ```
 
-- Writes `stockdata.csv` (overwritten each run): `symbol, name, industry, yahoo_sector, yahoo_industry, price, change_pct, market_cap, currency`.
+- Writes `stockdata.csv` (overwritten each run): `symbol, name, industry, yahoo_sector, yahoo_industry, price, change_pct, market_cap, currency, pe, div_yield, beta`.
 - Prints a summary ranked by industry: stock count, total market cap (Rand billions), average daily change %, tickers.
 - Lists any tickers that failed (delisted, renamed).
 
@@ -37,7 +39,7 @@ Each run also writes `site/data.json` (quotes, fundamentals, a year of daily pri
 View locally:
 
 ```
-python stock-data-scraper.py
+python scraper.py
 python -m http.server -d site
 ```
 
